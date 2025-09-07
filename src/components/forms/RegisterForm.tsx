@@ -1,382 +1,377 @@
-'use client'
+'use client';
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Link from 'next/link'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { useForm } from 'react-hook-form'
-import * as z from 'zod'
-import { Button } from '@/components/ui/button'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { Checkbox } from '@/components/ui/checkbox'
-import { useToast } from '@/components/ui/use-toast'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Loader2, GamepadIcon, Trophy, Sparkles, User } from 'lucide-react'
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { motion } from 'framer-motion';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+import toast from 'react-hot-toast';
+import { 
+  User, 
+  Phone, 
+  Mail, 
+  GraduationCap, 
+  Users, 
+  BookOpen,
+  Loader2,
+  ChevronRight 
+} from 'lucide-react';
+import { authApi } from '@/app/api/auth';
+// Validation schema
+const registerSchema = z.object({
+  name: z.string().min(2, 'Name must be at least 2 characters'),
+  phoneNumber: z.string().regex(/^[+]?[(]?[0-9]{3}[)]?[-\s\.]?[0-9]{3}[-\s\.]?[0-9]{4,6}$/, 'Invalid phone number'),
+  email: z.string().email('Invalid email').optional().or(z.literal('')),
+  userType: z.enum(['student', 'parent', 'teacher']),
+  grade: z.string().optional(),
+  parentPhone: z.string().optional(),
+  subject: z.string().optional(),
+});
 
-const formSchema = z.object({
-  username: z.string().min(3, 'Username must be at least 3 characters').max(20, 'Username must be less than 20 characters'),
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  confirmPassword: z.string(),
-  learningGoal: z.string().min(1, 'Please select a learning goal'),
-  experienceLevel: z.string().min(1, 'Please select your experience level'),
-  preferredSubjects: z.array(z.string()).min(1, 'Select at least one subject'),
-  agreeToTerms: z.boolean().refine((val) => val === true, 'You must agree to the terms'),
-  subscribeNewsletter: z.boolean().optional(),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-})
+type RegisterFormData = z.infer<typeof registerSchema>;
 
-type FormData = z.infer<typeof formSchema>
+export default function RegisterForm() {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [step, setStep] = useState(1);
+  const [selectedUserType, setSelectedUserType] = useState<string>('');
 
-const subjects = [
-  { id: 'javascript', label: 'JavaScript', icon: '🟨' },
-  { id: 'python', label: 'Python', icon: '🐍' },
-  { id: 'react', label: 'React', icon: '⚛️' },
-  { id: 'nodejs', label: 'Node.js', icon: '🟩' },
-  { id: 'css', label: 'CSS', icon: '🎨' },
-  { id: 'html', label: 'HTML', icon: '📄' },
-  { id: 'typescript', label: 'TypeScript', icon: '🔷' },
-  { id: 'database', label: 'Databases', icon: '🗄️' },
-]
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    watch,
+    setValue,
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+  });
 
-export function RegisterForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const { toast } = useToast()
+  const userType = watch('userType');
 
-  const form = useForm<FormData>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      username: '',
-      email: '',
-      password: '',
-      confirmPassword: '',
-      learningGoal: '',
-      experienceLevel: '',
-      preferredSubjects: [],
-      agreeToTerms: false,
-      subscribeNewsletter: true,
-    },
-  })
+  const userTypes = [
+    { value: 'student', label: 'Student', icon: GraduationCap, color: 'purple' },
+    { value: 'parent', label: 'Parent', icon: Users, color: 'blue' },
+    { value: 'teacher', label: 'Teacher', icon: BookOpen, color: 'green' },
+  ];
 
-  async function onSubmit(values: FormData) {
-    setIsLoading(true)
+  const grades = [
+    '1st Grade', '2nd Grade', '3rd Grade', '4th Grade', '5th Grade',
+    '6th Grade', '7th Grade', '8th Grade', '9th Grade', '10th Grade',
+    '11th Grade', '12th Grade',
+  ];
+
+  const subjects = [
+    'Mathematics', 'Science', 'English', 'History', 'Geography',
+    'Computer Science', 'Physics', 'Chemistry', 'Biology', 'Literature',
+  ];
+
+  const onSubmit = async (data: RegisterFormData) => {
     try {
-      // API call to register user
-      const response = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(values),
-      })
-
-      if (!response.ok) throw new Error('Registration failed')
-
-      toast({
-        title: "Welcome to Acadevie! 🎉",
-        description: "Your adventure begins now. You've earned 100 XP!",
-      })
-
-      router.push('/onboarding')
-    } catch (error) {
-      toast({
-        title: "Registration failed",
-        description: "Please try again or contact support.",
-        variant: "destructive",
-      })
+      setIsLoading(true);
+      
+      // Register user
+      await authApi.register(data);
+      
+      // Send OTP
+      await authApi.sendOTP(data.phoneNumber, data.userType);
+      
+      toast.success('Registration successful! Please verify OTP');
+      
+      // Redirect to OTP verification with phone number
+      router.push(`/auth/verify-otp?phone=${data.phoneNumber}&userType=${data.userType}`);
+    } catch (error: any) {
+      toast.error(error.message || 'Registration failed');
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
+
+  const nextStep = () => {
+    if (step === 1 && !selectedUserType) {
+      toast.error('Please select user type');
+      return;
+    }
+    setStep(step + 1);
+  };
 
   return (
-    <Card className="w-full max-w-2xl">
-      <CardHeader className="space-y-1 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="relative">
-            <GamepadIcon className="h-12 w-12 text-primary" />
-            <Sparkles className="h-4 w-4 text-yellow-500 absolute -top-1 -right-1" />
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="max-w-md w-full mx-auto"
+    >
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8">
+        {/* Progress Bar */}
+        <div className="mb-8">
+          <div className="flex justify-between mb-2">
+            {[1, 2, 3].map((i) => (
+              <div
+                key={i}
+                className={`flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium transition-colors ${
+                  i <= step
+                    ? 'bg-purple-600 text-white'
+                    : 'bg-gray-200 dark:bg-gray-700 text-gray-500'
+                }`}
+              >
+                {i}
+              </div>
+            ))}
+          </div>
+          <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <motion.div
+              className="h-full bg-purple-600"
+              initial={{ width: '0%' }}
+              animate={{ width: `${(step / 3) * 100}%` }}
+              transition={{ duration: 0.3 }}
+            />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold">Start Your Learning Quest</CardTitle>
-        <CardDescription>
-          Join thousands of learners on their journey to mastery
-        </CardDescription>
-        <div className="flex justify-center gap-2 pt-2">
-          <Badge variant="secondary">🎮 Gamified Learning</Badge>
-          <Badge variant="secondary">🏆 Earn Achievements</Badge>
-          <Badge variant="secondary">⚡ 100 XP Bonus</Badge>
-        </div>
-      </CardHeader>
 
-      <CardContent>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            {/* Username */}
-            <FormField
-              control={form.control}
-              name="username"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Player Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Choose your username" {...field} />
-                  </FormControl>
-                  <FormDescription>
-                    This will be your display name on leaderboards
-                  </FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Email */}
-            <FormField
-              control={form.control}
-              name="email"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Email</FormLabel>
-                  <FormControl>
-                    <Input type="email" placeholder="player@example.com" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Password */}
-            <div className="grid gap-4 md:grid-cols-2">
-              <FormField
-                control={form.control}
-                name="password"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="confirmPassword"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Confirm Password</FormLabel>
-                    <FormControl>
-                      <Input type="password" placeholder="••••••••" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {/* Learning Goal */}
-            <FormField
-              control={form.control}
-              name="learningGoal"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Learning Goal</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="What's your main goal?" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="career">🚀 Advance my career</SelectItem>
-                      <SelectItem value="skills">💡 Learn new skills</SelectItem>
-                      <SelectItem value="hobby">🎯 Personal interest</SelectItem>
-                      <SelectItem value="certification">📜 Get certified</SelectItem>
-                      <SelectItem value="freelance">💼 Start freelancing</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Experience Level */}
-            <FormField
-              control={form.control}
-              name="experienceLevel"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Experience Level</FormLabel>
-                  <Select onValueChange={field.onChange} defaultValue={field.value}>
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select your level" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      <SelectItem value="beginner">🌱 Beginner (Level 1-10)</SelectItem>
-                      <SelectItem value="intermediate">⚡ Intermediate (Level 11-30)</SelectItem>
-                      <SelectItem value="advanced">🔥 Advanced (Level 31-50)</SelectItem>
-                      <SelectItem value="expert">👑 Expert (Level 50+)</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Preferred Subjects */}
-            <FormField
-              control={form.control}
-              name="preferredSubjects"
-              render={() => (
-                <FormItem>
-                  <div className="mb-4">
-                    <FormLabel>Choose Your Subjects</FormLabel>
-                    <FormDescription>
-                      Select the topics you want to master (you can change these later)
-                    </FormDescription>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {subjects.map((subject) => (
-                      <FormField
-                        key={subject.id}
-                        control={form.control}
-                        name="preferredSubjects"
-                        render={({ field }) => {
-                          return (
-                            <FormItem
-                              key={subject.id}
-                              className="flex flex-row items-start space-x-2 space-y-0"
-                            >
-                              <FormControl>
-                                <Checkbox
-                                  checked={field.value?.includes(subject.id)}
-                                  onCheckedChange={(checked) => {
-                                    return checked
-                                      ? field.onChange([...field.value, subject.id])
-                                      : field.onChange(
-                                          field.value?.filter(
-                                            (value) => value !== subject.id
-                                          )
-                                        )
-                                  }}
-                                />
-                              </FormControl>
-                              <FormLabel className="text-sm font-normal cursor-pointer">
-                                {subject.icon} {subject.label}
-                              </FormLabel>
-                            </FormItem>
-                          )
-                        }}
-                      />
-                    ))}
-                  </div>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-
-            {/* Terms and Newsletter */}
-            <div className="space-y-2">
-              <FormField
-                control={form.control}
-                name="agreeToTerms"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        I agree to the{' '}
-                        <Link href="/terms" className="text-primary hover:underline">
-                          Terms of Service
-                        </Link>{' '}
-                        and{' '}
-                        <Link href="/privacy" className="text-primary hover:underline">
-                          Privacy Policy
-                        </Link>
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-
-              <FormField
-                control={form.control}
-                name="subscribeNewsletter"
-                render={({ field }) => (
-                  <FormItem className="flex flex-row items-start space-x-3 space-y-0">
-                    <FormControl>
-                      <Checkbox
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                    <div className="space-y-1 leading-none">
-                      <FormLabel>
-                        Send me tips, updates, and special offers
-                      </FormLabel>
-                    </div>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full"
-              size="lg"
-              disabled={isLoading}
+        <form onSubmit={handleSubmit(onSubmit)}>
+          {/* Step 1: User Type Selection */}
+          {step === 1 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
             >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Creating your account...
-                </>
-              ) : (
-                <>
-                  <Trophy className="mr-2 h-4 w-4" />
-                  Begin Your Adventure
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-      </CardContent>
+              <h2 className="text-2xl font-bold text-center mb-2">Join AcadeVela</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
+                Select your role to get started
+              </p>
 
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-muted-foreground">
+              <div className="space-y-4">
+                {userTypes.map((type) => (
+                  <motion.button
+                    key={type.value}
+                    type="button"
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => {
+                      setSelectedUserType(type.value);
+                      setValue('userType', type.value as any);
+                    }}
+                    className={`w-full p-4 rounded-xl border-2 transition-all ${
+                      selectedUserType === type.value
+                        ? `border-${type.color}-500 bg-${type.color}-50 dark:bg-${type.color}-900/20`
+                        : 'border-gray-200 dark:border-gray-700 hover:border-gray-300'
+                    }`}
+                  >
+                    <div className="flex items-center gap-4">
+                      <div className={`p-3 rounded-lg bg-${type.color}-100 dark:bg-${type.color}-900/40`}>
+                        <type.icon className={`w-6 h-6 text-${type.color}-600`} />
+                      </div>
+                      <div className="text-left flex-1">
+                        <h3 className="font-semibold">{type.label}</h3>
+                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                          {type.value === 'student' && 'Learn and earn rewards'}
+                          {type.value === 'parent' && 'Track your child\'s progress'}
+                          {type.value === 'teacher' && 'Create and manage courses'}
+                        </p>
+                      </div>
+                    </div>
+                  </motion.button>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={nextStep}
+                disabled={!selectedUserType}
+                className="w-full mt-8 py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                Continue
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </motion.div>
+          )}
+
+          {/* Step 2: Basic Information */}
+          {step === 2 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <h2 className="text-2xl font-bold text-center mb-2">Basic Information</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
+                Tell us about yourself
+              </p>
+
+              <div className="space-y-4">
+                {/* Name */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      {...register('name')}
+                      type="text"
+                      placeholder="Enter your full name"
+                      className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  {errors.name && (
+                    <p className="text-red-500 text-sm mt-1">{errors.name.message}</p>
+                  )}
+                </div>
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      {...register('phoneNumber')}
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  {errors.phoneNumber && (
+                    <p className="text-red-500 text-sm mt-1">{errors.phoneNumber.message}</p>
+                  )}
+                </div>
+
+                {/* Email (Optional) */}
+                <div>
+                  <label className="block text-sm font-medium mb-2">
+                    Email <span className="text-gray-400">(Optional)</span>
+                  </label>
+                  <div className="relative">
+                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                    <input
+                      {...register('email')}
+                      type="email"
+                      placeholder="your@email.com"
+                      className="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    />
+                  </div>
+                  {errors.email && (
+                    <p className="text-red-500 text-sm mt-1">{errors.email.message}</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="button"
+                  onClick={nextStep}
+                  className="flex-1 py-3 px-4 bg-purple-600 hover:bg-purple-700 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  Continue
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </motion.div>
+          )}
+
+          {/* Step 3: Additional Information */}
+          {step === 3 && (
+            <motion.div
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+            >
+              <h2 className="text-2xl font-bold text-center mb-2">Almost Done!</h2>
+              <p className="text-gray-600 dark:text-gray-400 text-center mb-8">
+                Just a few more details
+              </p>
+
+              <div className="space-y-4">
+                {/* Student specific fields */}
+                {userType === 'student' && (
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium mb-2">Grade</label>
+                      <select
+                        {...register('grade')}
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      >
+                        <option value="">Select your grade</option>
+                        {grades.map((grade) => (
+                          <option key={grade} value={grade}>{grade}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium mb-2">
+                        Parent's Phone <span className="text-gray-400">(Optional)</span>
+                      </label>
+                      <input
+                        {...register('parentPhone')}
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                      />
+                    </div>
+                  </>
+                )}
+
+                {/* Teacher specific fields */}
+                {userType === 'teacher' && (
+                  <div>
+                    <label className="block text-sm font-medium mb-2">Primary Subject</label>
+                    <select
+                      {...register('subject')}
+                      className="w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                    >
+                      <option value="">Select your subject</option>
+                      {subjects.map((subject) => (
+                        <option key={subject} value={subject}>{subject}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-4 mt-8">
+                <button
+                  type="button"
+                  onClick={() => setStep(2)}
+                  className="flex-1 py-3 px-4 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                >
+                  Back
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 py-3 px-4 bg-purple-600 hover:bg-purple-700 disabled:bg-purple-400 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+                >
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Creating Account...
+                    </>
+                  ) : (
+                    <>
+                      Create Account
+                      <ChevronRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+            </motion.div>
+          )}
+        </form>
+
+        {/* Login Link */}
+        <p className="text-center text-sm text-gray-600 dark:text-gray-400 mt-6">
           Already have an account?{' '}
-          <Link href="/login" className="text-primary hover:underline">
+          <a href="/auth/login" className="text-purple-600 hover:text-purple-700 font-medium">
             Sign in
-          </Link>
+          </a>
         </p>
-      </CardFooter>
-    </Card>
-  )
+      </div>
+    </motion.div>
+  );
 }
