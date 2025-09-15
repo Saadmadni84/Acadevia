@@ -1,6 +1,13 @@
 {
+<<<<<<< HEAD
   "sortedMiddleware": [],
   "middleware": {},
   "functions": {},
   "version": 2
+=======
+  "version": 3,
+  "middleware": {},
+  "functions": {},
+  "sortedMiddleware": []
+>>>>>>> 2158426 ("initial commit")
 }

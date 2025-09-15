@@ -8,10 +8,15 @@
     "static/development/_buildManifest.js",
     "static/development/_ssgManifest.js"
   ],
+<<<<<<< HEAD
   "rootMainFiles": [
     "static/chunks/webpack.js",
     "static/chunks/main-app.js"
   ],
+=======
+  "rootMainFiles": [],
+  "rootMainFilesTree": {},
+>>>>>>> 2158426 ("initial commit")
   "pages": {
     "/_app": []
   },

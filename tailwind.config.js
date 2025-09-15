@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 /** @type {import('tailwindcss').Config} */
 module.exports = {
@@ -146,3 +147,17 @@ module.exports = {
   plugins: [require("@tailwindcss/forms"), require("tailwindcss-animate")],
 };
 >>>>>>> 5bca1c1 ("fixes")
+=======
+/** @type {import('tailwindcss').Config} */
+module.exports = {
+  content: [
+    "./pages/**/*.{js,ts,jsx,tsx,mdx}",
+    "./components/**/*.{js,ts,jsx,tsx,mdx}",
+    "./app/**/*.{js,ts,jsx,tsx,mdx}",
+  ],
+  theme: {
+    extend: {},
+  },
+  plugins: [],
+}
+>>>>>>> 2158426 ("initial commit")
