@@ -1,5 +1,9 @@
 {
   "node": {},
   "edge": {},
+<<<<<<< HEAD
   "encryptionKey": "jEx2GTSueDYQJwHxte7Q3UT/n3HcBHlgyTYty3+Eb2w="
+=======
+  "encryptionKey": "gUVLFp6URnjft3ScCDEJmx0EJT4y4scdt2nPyYmRBhk="
+>>>>>>> 2158426 ("initial commit")
 }

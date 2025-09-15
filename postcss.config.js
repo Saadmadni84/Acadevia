@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // postcss.config.js
 module.exports = {
   plugins: {
@@ -7,3 +8,11 @@ module.exports = {
     // add more if you want
   }
 };
+=======
+module.exports = {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  }
+}
+>>>>>>> 2158426 ("initial commit")

@@ -1,4 +1,5 @@
 {
+<<<<<<< HEAD
   "pages": {
     "/page": [
       "static/chunks/webpack.js",
@@ -12,4 +13,7 @@
       "static/chunks/app/layout.js"
     ]
   }
+=======
+  "pages": {}
+>>>>>>> 2158426 ("initial commit")
 }
